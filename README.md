@@ -4,7 +4,7 @@
 
 ## 🔗 Live Demo
 
-([Click Here to View Website](https://munafa-pevwps8gm-mrhumblewithafriend-6222s-projects.vercel.app/))
+[Click Here to View Website](https://munafa-pevwps8gm-mrhumblewithafriend-6222s-projects.vercel.app/)
 
 ---
 
