@@ -2,7 +2,10 @@
 
 > **Empowering small shop owners to know exactly what to reorder and what to mark down — before it spoils, not after.**
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20App-0D3123?style=for-the-badge)](https://YOUR-LIVE-LINK-HERE.vercel.app)
+## 🔗 Live Demo
+
+[Click Here to View Website](https://YOUR-LIVE-LINK-HERE.vercel.app)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-EFA51E?style=for-the-badge)](LICENSE)
 
 ---
@@ -53,3 +56,11 @@ The project is structured to deploy directly as a serverless application on Verc
    vercel --prod
    ```
 3. Set your environment variables in the Vercel Dashboard Settings under **Environment Variables**.
+
+---
+
+### ⚡ One-Click Deploy Placeholder
+
+You can set up a direct deployment button to allow anyone to deploy this app to their Vercel account instantly. Swap out `YOUR_GITHUB_USERNAME` in the link below:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FYOUR_GITHUB_USERNAME%2FMunafa&root-directory=munafa&env=GEMINI_API_KEY,TWILIO_ACCOUNT_SID,TWILIO_AUTH_TOKEN,TWILIO_FROM_NUMBER)
