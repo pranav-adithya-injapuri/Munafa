@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Munafa — the kirana counter copilot</title>
+<meta name="description" content="Munafa tells small shop owners exactly what to reorder and what to mark down — before perishable stock spoils. The math runs on your phone; only the advice needs internet." />
+<meta name="theme-color" content="#0D3123" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230D3123'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle' fill='%23EFA51E' font-family='serif' font-weight='bold'%3E%E2%82%B9%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Yatra+One&family=Anek+Latin:wght@400;500;600;700&family=Anek+Devanagari:wght@400;500;600;700&family=Anek+Telugu:wght@400;500;600&family=Anek+Tamil:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.7/gsap.min.js" defer></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
+</head>
+<body>
+<div class="page">
+
+  <header class="board">
+    <!-- Decorative ink-sketch layer (pitch-deck visual language). Purely
+         atmospheric: aria-hidden, pointer-events:none, behind .board-frame. -->
+    <svg class="board-scene" viewBox="0 0 540 240" aria-hidden="true" focusable="false">
+      <g fill="none" stroke="#F7EFD9" stroke-opacity=".32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M96,102 V206 M424,102 V206"/>
+        <path d="M74,206 H466 V239 H74 Z"/>
+        <path d="M74,223 H466" stroke-opacity=".14"/>
+        <circle cx="258" cy="134" r="15"/>
+        <path d="M240,154 C236,166 237,186 242,206 L274,206 C279,186 280,166 276,154 Z"/>
+        <path d="M242,160 Q220,170 212,186"/>
+        <path d="M274,160 Q296,168 302,182"/>
+        <path d="M160,206 V164"/>
+        <g class="scale-sway">
+          <path d="M136,164 H184"/>
+          <path d="M136,164 L128,184 M136,164 L144,184 M124,184 Q136,194 148,184"/>
+          <path d="M184,164 L176,184 M184,164 L192,184 M172,184 Q184,194 196,184"/>
+        </g>
+        <path d="M318,206 V180 H366 V206"/>
+        <path d="M318,193 H366" stroke-opacity=".18"/>
+        <path d="M218,192 h14 l-2,14 h-10 z" stroke-width="2"/>
+      </g>
+      <g fill="none" stroke="#EFA51E" stroke-opacity=".55" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M64,102 L270,46 L476,102" stroke-width="3"/>
+        <path d="M84,105 Q98,118 112,105 Q126,118 140,105 Q154,118 168,105 Q182,118 196,105 Q210,118 224,105 Q238,118 252,105 Q266,118 280,105 Q294,118 308,105 Q322,118 336,105 Q350,118 364,105 Q378,118 392,105 Q406,118 420,105 Q434,118 448,105" stroke-width="2" stroke-opacity=".4"/>
+        <circle cx="396" cy="192" r="13"/>
+        <circle cx="424" cy="197" r="9"/>
+        <circle cx="446" cy="190" r="11"/>
+        <circle cx="342" cy="173" r="6" stroke-opacity=".4"/>
+        <g class="steam">
+          <path d="M222,186 q3,-6 0,-11 q-3,-5 0,-9 M229,186 q3,-6 0,-11" stroke-width="1.8" stroke-opacity=".85"/>
+        </g>
+      </g>
+    </svg>
+    <svg class="board-sign" viewBox="0 0 120 112" aria-hidden="true" focusable="false">
+      <g class="sign-sway">
+        <g fill="none" stroke="#F7EFD9" stroke-opacity=".5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M40,2 L47,28 M80,2 L73,28"/>
+          <rect x="30" y="28" width="60" height="42" rx="6"/>
+        </g>
+        <rect x="36.5" y="34.5" width="47" height="29" rx="3.5" fill="none" stroke="#EFA51E" stroke-opacity=".5" stroke-width="1.6" stroke-dasharray="4 5"/>
+        <text x="60" y="59" text-anchor="middle" font-size="23" font-family="'Yatra One', serif" fill="#EFA51E" fill-opacity=".9">₹</text>
+      </g>
+    </svg>
+    <div class="board-frame">
+      <div class="brand">
+        <span class="brand-hi" aria-hidden="true">मुनाफ़ा</span>
+        <h1>Munafa</h1>
+      </div>
+      <div class="board-right">
+        <p class="tagline" data-i18n="tagline"></p>
+        <button class="meter-tile" id="meterTile" type="button" aria-expanded="false" aria-controls="meterBreak">
+          <span class="meter-copy">
+            <span class="meter-label" data-i18n="meterLabel"></span>
+            <span class="meter-sub" data-i18n="meterSub"></span>
+          </span>
+          <span class="meter-num" id="meterTotal">₹0</span>
+          <svg class="meter-chev pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5 12 15l6-5.5"/></svg>
+        </button>
+        <p class="meter-break" id="meterBreak" aria-live="polite" hidden></p>
+      </div>
+    </div>
+  </header>
+
+  <div class="counter">
+    <div class="lang-switch" role="group" aria-label="Language · भाषा · భాష · மொழி">
+      <button class="lang-btn" type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button class="lang-btn" type="button" data-lang="hi" aria-pressed="false" lang="hi">हिं</button>
+      <button class="lang-btn" type="button" data-lang="te" aria-pressed="false" lang="te">తె</button>
+      <button class="lang-btn" type="button" data-lang="ta" aria-pressed="false" lang="ta">த</button>
+    </div>
+    <button class="btn btn-ghost act-btn" id="actBtn" type="button">
+      <svg class="pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h10a1 1 0 0 1 1 1V20l-2.4-1.6-1.8 1.4-1.8-1.4-1.8 1.4-1.8-1.4L6 20V4.5a1 1 0 0 1 1-1z"/><path d="M9.5 8.5h5M9.5 12h3.5"/></svg>
+      <span data-i18n="activity"></span>
+      <span class="act-badge" id="actBadge" hidden>0</span>
+    </button>
+    <button class="btn btn-ghost" id="tallyBtn" type="button" hidden>
+      <svg class="pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3.5" width="6" height="10.5" rx="3" fill="currentColor" opacity=".15" stroke="none"/><rect x="9" y="3.5" width="6" height="10.5" rx="3"/><path d="M5.8 11.5a6.2 6.2 0 0 0 12.4 0"/><path d="M12 17.7v2.6M9.2 20.5h5.6"/></svg>
+      <span data-i18n="tallyBtn"></span>
+    </button>
+    <details class="more-menu" id="moreMenu">
+      <summary class="icon-btn more-btn" aria-label="More">
+        <svg class="pico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="5.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.5" cy="12" r="1.7"/></svg>
+      </summary>
+      <div class="more-pop">
+        <button class="menu-item" id="importBtn" type="button">
+          <svg class="pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4.5" width="16" height="15" rx="1.5"/><path d="M4 9.5h16M9.5 9.5v10M15 9.5v10"/></svg>
+          <span data-i18n="importBtn"></span>
+        </button>
+        <button class="menu-item" id="validateBtn" type="button">
+          <svg class="pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19V10M11 19V5M17 19v-7M5 19h14"/></svg>
+          <span data-i18n="validateCta"></span>
+        </button>
+      </div>
+    </details>
+    <input type="file" id="importFile" accept=".xlsx,.xls,.csv" hidden />
+    <button class="btn btn-solid" id="addBtn" type="button">
+      <span aria-hidden="true">+</span>&nbsp;<span data-i18n="addStock"></span>
+    </button>
+  </div>
+
+  <main id="main">
+    <section class="summary" aria-label="Summary">
+      <button class="stat stat-md" type="button" data-filter="md" aria-pressed="false">
+        <div class="stat-num" id="sumMarkdown">0</div>
+        <div class="stat-label" data-i18n="sumMarkdown"></div>
+      </button>
+      <button class="stat stat-ro" type="button" data-filter="ro" aria-pressed="false">
+        <div class="stat-num" id="sumReorder">0</div>
+        <div class="stat-label" data-i18n="sumReorder"></div>
+      </button>
+      <button class="stat stat-risk" type="button" data-filter="risk" aria-pressed="false">
+        <div class="stat-num" id="sumRisk">₹0</div>
+        <div class="stat-label" data-i18n="sumRisk"></div>
+      </button>
+    </section>
+
+    <div class="today-strip" id="todayStrip" hidden>
+      <div class="budget-nudge" id="budgetNudge" hidden>
+        <span class="budget-nudge-text" id="budgetNudgeText"></span>
+        <button class="btn btn-ghost budget-nudge-btn" id="budgetPlanBtn" type="button">
+          <svg class="pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h16v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-12z"/><path d="M4 6.5l2.2-3h11.6l2.2 3"/><path d="M9.5 13.5a2.5 2 0 0 0 5 0 2.5 2 0 0 0-5 0z"/></svg>
+          <span data-i18n="budgetPlanBtn"></span>
+        </button>
+      </div>
+      <div class="plan-panel" id="planPanel" hidden>
+        <button class="ask-btn" id="planBtn" type="button">
+          <svg class="pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4.5h9l3 3v12h-12z"/><path d="M9 10.5h6M9 14h6M9 17.5h3.5"/></svg>
+          <span data-i18n="planBtn"></span>
+        </button>
+        <div class="chit plan-chit" id="planChit" aria-live="polite" hidden></div>
+      </div>
+    </div>
+
+    <div class="chips" id="chips" role="group" aria-label="Category"></div>
+
+    <section class="grid" id="grid"></section>
+  </main>
+
+  <!-- Decorative street-frieze vignette — quiet zone between grid and footer. -->
+  <div class="street-strip" aria-hidden="true">
+    <svg viewBox="0 0 1140 170" focusable="false">
+      <g fill="none" stroke="#14403D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M24,150 H1116" stroke-dasharray="2 12" stroke-opacity=".3" stroke-width="2"/>
+        <g class="ss-bike" stroke-opacity=".5">
+          <g class="ss-wheel">
+            <circle cx="130" cy="126" r="22"/>
+            <path d="M130,110 V142 M114,126 H146 M119,115 L141,137" stroke-width="1.6" stroke-opacity=".8"/>
+          </g>
+          <g class="ss-wheel">
+            <circle cx="222" cy="126" r="22"/>
+            <path d="M222,110 V142 M206,126 H238 M211,115 L233,137" stroke-width="1.6" stroke-opacity=".8"/>
+          </g>
+          <path d="M130,126 L160,94 H204 L222,126 M160,94 L150,126 M204,94 L212,110"/>
+          <path d="M146,88 H162 M154,88 L160,94"/>
+          <path d="M204,94 L209,81 M202,81 q10,-4 15,2"/>
+          <circle cx="177" cy="119" r="5"/>
+          <path d="M177,119 l9,9"/>
+        </g>
+        <g class="ss-cart" stroke-opacity=".5">
+          <path d="M368,118 H544"/>
+          <path d="M382,118 L374,150 M530,118 L538,150"/>
+          <circle cx="456" cy="136" r="13"/>
+        </g>
+        <g class="ss-figure" stroke-opacity=".5">
+          <circle cx="596" cy="84" r="11"/>
+          <path d="M584,98 C581,108 582,122 586,136 L606,136 C610,122 611,108 608,98 Z"/>
+          <path d="M586,104 Q574,112 570,124"/>
+        </g>
+        <g class="ss-stall" stroke-opacity=".5">
+          <path d="M656,74 V150 M844,74 V150"/>
+          <path d="M640,120 H860"/>
+          <path d="M680,120 V98 H724 V120 M680,109 H724"/>
+        </g>
+        <g class="ss-right" stroke-opacity=".5">
+          <path d="M932,150 Q930,124 942,114 Q950,107 960,114 Q972,124 970,150 Z"/>
+          <path d="M944,112 L941,104 M956,112 L959,104"/>
+          <path d="M978,150 Q976,128 986,119 Q993,113 1001,119 Q1011,128 1009,150 Z"/>
+          <path d="M1038,150 a14,11 0 1 1 27,4"/>
+          <path d="M1065,152 q13,-3 10,-14"/>
+          <path d="M1044,138 l-3,-6 M1052,136 l1,-6"/>
+        </g>
+        <path class="ss-birds" d="M986,42 q6,-6 12,0 q6,-6 12,0 M1030,56 q5,-5 10,0 q5,-5 10,0" stroke-opacity=".35" stroke-width="2"/>
+      </g>
+      <g fill="none" stroke="#E08A1E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <g class="ss-bike" stroke-opacity=".6">
+          <rect x="106" y="74" width="36" height="24" rx="2"/>
+          <path d="M106,86 h36"/>
+        </g>
+        <g class="ss-cart" stroke-opacity=".6">
+          <circle cx="410" cy="108" r="9"/>
+          <circle cx="432" cy="106" r="10"/>
+          <circle cx="454" cy="108" r="9"/>
+          <circle cx="420" cy="92" r="8"/>
+          <circle cx="442" cy="92" r="8"/>
+          <circle cx="431" cy="78" r="7"/>
+        </g>
+        <path class="ss-figure" d="M608,116 l11,4 v13 h-13" stroke-opacity=".6"/>
+        <g class="ss-stall" stroke-opacity=".65">
+          <path d="M640,74 L750,44 L860,74" stroke-width="3"/>
+          <path d="M660,77 Q673,89 686,77 Q699,89 712,77 Q725,89 738,77 Q751,89 764,77 Q777,89 790,77 Q803,89 816,77 Q829,89 840,77" stroke-width="2" stroke-opacity=".45"/>
+          <circle cx="762" cy="108" r="11"/>
+          <circle cx="790" cy="112" r="8"/>
+          <circle cx="812" cy="107" r="9"/>
+        </g>
+        <g class="ss-right" stroke-opacity=".55">
+          <circle cx="944" cy="132" r="2"/>
+          <circle cx="952" cy="138" r="2"/>
+          <circle cx="988" cy="136" r="2"/>
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <footer class="foot">
+    <span data-i18n="footer"></span>
+    <button class="link" id="resetBtn" type="button" data-i18n="reset"></button>
+  </footer>
+
+</div>
+
+<button class="fab" id="fabBtn" type="button" aria-label="Add stock">+</button>
+
+<button class="cart-bar" id="cartBar" type="button" hidden>
+  <svg class="pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 9.5h15l-1.4 8.6a2 2 0 0 1-2 1.7H7.9a2 2 0 0 1-2-1.7L4.5 9.5z" fill="currentColor" opacity=".15" stroke="none"/><path d="M4.5 9.5h15l-1.4 8.6a2 2 0 0 1-2 1.7H7.9a2 2 0 0 1-2-1.7L4.5 9.5z"/><path d="M8.5 9.5 12 4l3.5 5.5"/><path d="M9.3 13v3.4M12 13v3.4M14.7 13v3.4"/></svg>
+  <span class="cart-bar-label" data-i18n="cartBarLabel"></span>
+  <span class="cart-bar-sum" id="cartBarSum"></span>
+  <svg class="pico cart-bar-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5.5 15.5 12 9 18.5"/></svg>
+</button>
+
+<dialog class="sheet cart-sheet" id="cartSheet" aria-labelledby="cartTitle">
+  <div class="cart-inner">
+    <div class="sheet-head">
+      <h2 id="cartTitle" data-i18n="cartTitle"></h2>
+      <button class="icon-btn" type="button" id="closeCart" aria-label="Close">×</button>
+    </div>
+    <p class="cart-caption" data-i18n="cartCaption"></p>
+    <div class="cart-list" id="cartList"></div>
+    <div class="cart-total">
+      <span class="cart-total-label" data-i18n="cartTotalLabel"></span>
+      <strong class="cart-total-num" id="cartTotalNum">₹0</strong>
+    </div>
+    <label class="cart-supplier">
+      <span data-i18n="cartSupplierLabel"></span>
+      <input id="supplierPhone" type="tel" inputmode="tel" autocomplete="off" placeholder="91XXXXXXXXXX" maxlength="16" />
+      <small data-i18n="cartSupplierHint"></small>
+    </label>
+    <div class="sheet-actions">
+      <span class="spacer"></span>
+      <button class="btn btn-solid cart-send" id="cartSend" type="button">
+        <svg class="pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 0 0-7.3 12.8L3.5 20.5l4.4-1.15A8.5 8.5 0 1 0 12 3.5z"/><path d="M8.8 8.9c-.3 2.6 3.7 6.6 6.3 6.3l1-1.6-2.1-1.2-.9.7c-1-.4-1.8-1.2-2.2-2.2l.7-.9-1.2-2.1z"/></svg>
+        <span data-i18n="cartSend"></span>
+      </button>
+    </div>
+  </div>
+</dialog>
+
+<dialog class="sheet" id="sheet" aria-labelledby="sheetTitle">
+  <form id="stockForm" novalidate>
+    <div class="sheet-head">
+      <h2 id="sheetTitle"></h2>
+      <button class="icon-btn voice-btn" id="voiceBtn" type="button" hidden>
+        <svg class="pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3.5" width="6" height="10.5" rx="3" fill="currentColor" opacity=".15" stroke="none"/><rect x="9" y="3.5" width="6" height="10.5" rx="3"/><path d="M5.8 11.5a6.2 6.2 0 0 0 12.4 0"/><path d="M12 17.7v2.6M9.2 20.5h5.6"/></svg>
+        <span class="visually-hidden" data-i18n="voiceAdd"></span>
+      </button>
+      <button class="icon-btn" type="button" id="closeSheet" aria-label="Close">×</button>
+    </div>
+
+    <p class="voice-status" id="voiceStatus" aria-live="polite" hidden></p>
+
+    <label class="field span2">
+      <span data-i18n="fName"></span>
+      <input name="name" class="input-text" required maxlength="40" autocomplete="off" autofocus />
+    </label>
+
+    <label class="field span2">
+      <span data-i18n="fCategory"></span>
+      <select name="category" id="catSelect"></select>
+    </label>
+
+    <label class="field">
+      <span data-i18n="fCost"></span>
+      <input name="unitCost" inputmode="decimal" autocomplete="off" required />
+    </label>
+    <label class="field">
+      <span data-i18n="fPrice"></span>
+      <input name="sellPrice" inputmode="decimal" autocomplete="off" required />
+    </label>
+    <label class="field">
+      <span data-i18n="fStock"></span>
+      <input name="currentStock" inputmode="numeric" autocomplete="off" required />
+    </label>
+    <label class="field">
+      <span data-i18n="fExpiry"></span>
+      <input name="daysToExpiry" inputmode="numeric" autocomplete="off" required />
+    </label>
+    <label class="field">
+      <span data-i18n="fLead"></span>
+      <input name="leadTimeDays" inputmode="numeric" autocomplete="off" placeholder="1" />
+    </label>
+    <label class="field span2">
+      <span data-i18n="fSales"></span>
+      <input name="salesHistory" inputmode="numeric" autocomplete="off" placeholder="12, 15, 9, 14, 18" required />
+      <small data-i18n="fSalesHint"></small>
+    </label>
+
+    <p class="form-error" id="formError" hidden></p>
+
+    <div class="sheet-actions">
+      <button class="link danger" type="button" id="deleteBtn" hidden></button>
+      <span class="spacer"></span>
+      <button class="btn btn-ghost" type="button" id="cancelBtn"></button>
+      <button class="btn btn-solid" type="submit" id="saveBtn"></button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="sheet tally-sheet" id="tallySheet" aria-labelledby="tallyTitle">
+  <div class="tally-inner">
+    <div class="sheet-head">
+      <h2 id="tallyTitle" data-i18n="tallyTitle"></h2>
+      <button class="icon-btn voice-btn" id="tallyMic" type="button" aria-label="Listen">
+        <svg class="pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3.5" width="6" height="10.5" rx="3" fill="currentColor" opacity=".15" stroke="none"/><rect x="9" y="3.5" width="6" height="10.5" rx="3"/><path d="M5.8 11.5a6.2 6.2 0 0 0 12.4 0"/><path d="M12 17.7v2.6M9.2 20.5h5.6"/></svg>
+      </button>
+      <button class="icon-btn" type="button" id="closeTally" aria-label="Close">×</button>
+    </div>
+    <p class="tally-caption" data-i18n="tallyCaption"></p>
+    <p class="voice-status tally-status" id="tallyStatus" aria-live="polite" hidden></p>
+    <div class="tally-list" id="tallyList"></div>
+    <div class="sheet-actions">
+      <span class="spacer"></span>
+      <button class="btn btn-solid" type="button" id="tallySave" hidden></button>
+    </div>
+  </div>
+</dialog>
+
+<dialog class="drawer" id="drawer" aria-labelledby="drawerTitle">
+  <div class="drawer-inner">
+    <div class="sheet-head">
+      <h2 id="drawerTitle"></h2>
+      <button class="icon-btn" type="button" id="closeDrawer" aria-label="Close">×</button>
+    </div>
+    <p class="drawer-caption" data-i18n="actCaption"></p>
+    <div class="drawer-sum" aria-label="Today">
+      <div class="mini-stat mini-md">
+        <div class="mini-num" id="sumMdToday">₹0</div>
+        <div class="mini-label" data-i18n="sumMdTodayL"></div>
+      </div>
+      <div class="mini-stat mini-ro">
+        <div class="mini-num" id="sumOrderToday">0</div>
+        <div class="mini-label" data-i18n="sumOrderTodayL"></div>
+      </div>
+    </div>
+    <button class="btn btn-solid share-btn" id="shareBtn" type="button" hidden>
+      <svg class="pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 4.5 19 10l-5.5 5.5"/><path d="M19 10h-8.5A5.5 5.5 0 0 0 5 15.5v3"/></svg>
+      <span id="shareBtnLabel" data-i18n="shareBtn"></span>
+    </button>
+    <button class="btn btn-solid share-btn" id="smsAlertBtn" type="button" style="margin-top: 10px; width: 100%;">
+      <svg class="pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Send Owner SMS Alert</span>
+    </button>
+    <p class="share-note" id="shareNote" aria-live="polite" hidden></p>
+    <p class="share-note" id="smsNote" aria-live="polite" hidden></p>
+    <ul class="act-list" id="actList"></ul>
+    <button class="link" id="clearLog" type="button" data-i18n="actClear" hidden></button>
+  </div>
+</dialog>
+
+<dialog class="sheet import-sheet" id="importSheet" aria-labelledby="importTitle">
+  <div class="import-inner">
+    <div class="sheet-head">
+      <h2 id="importTitle" data-i18n="impTitle"></h2>
+      <button class="icon-btn" type="button" id="closeImport" aria-label="Close">×</button>
+    </div>
+    <p class="import-caption" data-i18n="impCaption"></p>
+    <p class="import-status" id="importStatus" aria-live="polite" hidden></p>
+    <p class="form-error" id="importError" hidden></p>
+    <p class="import-warn" id="importWarn" hidden></p>
+    <div class="import-table-wrap" id="importTableWrap" hidden>
+      <table class="import-table" id="importTable"></table>
+    </div>
+    <p class="import-est-note" id="importEstNote" data-i18n="impEstNote" hidden></p>
+    <div class="sheet-actions">
+      <span class="spacer"></span>
+      <button class="btn btn-ghost" type="button" id="importCancel"></button>
+      <button class="btn btn-solid" type="button" id="importConfirm" disabled></button>
+    </div>
+  </div>
+</dialog>
+
+<dialog class="sheet budget-sheet" id="budgetSheet" aria-labelledby="budgetTitle">
+  <div class="budget-inner">
+    <div class="sheet-head">
+      <h2 id="budgetTitle" data-i18n="budgetTitle"></h2>
+      <button class="icon-btn" type="button" id="closeBudget" aria-label="Close">×</button>
+    </div>
+    <p class="budget-caption" data-i18n="budgetCaption"></p>
+
+    <div class="budget-input-row">
+      <label class="budget-input-label" for="budgetAmount" data-i18n="budgetInputLabel"></label>
+      <div class="budget-amount-wrap">
+        <span class="budget-rupee" aria-hidden="true">₹</span>
+        <input type="number" id="budgetAmount" class="budget-amount" min="0" step="10" inputmode="numeric" />
+      </div>
+    </div>
+    <input type="range" id="budgetSlider" class="budget-slider" min="0" max="1000" step="10" value="0" aria-label="Today's budget slider" />
+
+    <div class="budget-summary" id="budgetSummary" hidden>
+      <div class="budget-summary-row">
+        <span class="budget-summary-main" id="budgetAllocatedText"></span>
+        <span class="budget-summary-sub" id="budgetLeftoverText"></span>
+      </div>
+      <div class="budget-value-callout" id="budgetValueCallout">
+        <span class="budget-value-label" data-i18n="budgetValueHead"></span>
+        <span class="budget-value-num" id="budgetValueNum"></span>
+      </div>
+      <p class="budget-covered-note" id="budgetCoveredNote" data-i18n="budgetFullyCovered" hidden></p>
+    </div>
+
+    <p class="budget-empty" id="budgetEmptyMsg" hidden></p>
+
+    <div class="budget-list" id="budgetList"></div>
+
+    <div class="sheet-actions">
+      <span class="spacer"></span>
+      <button class="btn btn-ghost" type="button" id="budgetCancel"></button>
+      <button class="btn btn-solid" type="button" id="budgetConfirm" disabled></button>
+    </div>
+  </div>
+</dialog>
+
+<dialog class="sheet validate-sheet" id="validateSheet" aria-labelledby="validateTitle">
+  <div class="validate-inner">
+    <div class="sheet-head">
+      <h2 id="validateTitle" data-i18n="validateTitle"></h2>
+      <button class="icon-btn" type="button" id="closeValidate" aria-label="Close">×</button>
+    </div>
+    <p class="validate-caption" data-i18n="validateCaption"></p>
+
+    <p class="validate-running" id="validateRunning" data-i18n="validateRunning" hidden></p>
+
+    <div class="validate-results" id="validateResults" hidden>
+      <div class="validate-headline">
+        <span class="validate-headline-num" id="validateHeadlineNum"></span>
+        <span class="validate-headline-lbl" id="validateHeadlineLbl"></span>
+        <span class="validate-headline-sub" id="validateHeadlineSub"></span>
+      </div>
+
+      <div class="validate-chart-wrap" id="validateChartWrap"></div>
+
+      <div class="validate-legend">
+        <span class="validate-legend-item"><i class="validate-swatch validate-swatch-stockout"></i><span data-i18n="validateChartStockout"></span></span>
+        <span class="validate-legend-item"><i class="validate-swatch validate-swatch-spoilage"></i><span data-i18n="validateChartSpoilage"></span></span>
+      </div>
+
+      <div class="validate-method">
+        <p class="validate-method-body" id="validateMethodBody"></p>
+      </div>
+
+      <div class="validate-breakdown-head" data-i18n="validateBreakdownTitle"></div>
+      <div class="validate-breakdown" id="validateBreakdown"></div>
+    </div>
+
+    <div class="sheet-actions">
+      <button class="btn btn-ghost validate-rerun" type="button" id="validateRerun">
+        <svg class="pico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5.2M20 12a8 8 0 0 1-14 5.2"/><path d="M18.5 4.5v3.5H15M5.5 19.5V16H9"/></svg>
+        <span data-i18n="validateRerun"></span>
+      </button>
+      <span class="spacer"></span>
+      <button class="btn btn-solid" type="button" id="closeValidateDone" data-i18n="closeAria"></button>
+    </div>
+  </div>
+</dialog>
+
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="app.js" defer></script>
+</body>
+</html>

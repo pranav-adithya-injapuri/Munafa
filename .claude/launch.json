@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "munafa",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["dev-server.js"],
+      "cwd": "C:\\Users\\rishi\\Downloads\\munafa-gemini\\munafa",
+      "port": 4173
+    }
+  ]
+}
